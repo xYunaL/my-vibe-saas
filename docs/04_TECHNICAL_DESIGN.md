@@ -82,7 +82,7 @@ src/
       ProfileEditModal.tsx        ← 닉네임·팀 변경 모달
     onboarding/
       OnboardingModal.tsx         ← 첫 진입 온보딩 오버레이
-      TeamSelectorGrid.tsx        ← 10개 팀 선택 그리드
+      TeamSelectorGrid.tsx        ← 11개 팀 + 가상 옵션("none"·"all") 선택 그리드
 
   features/
     chat/
@@ -95,7 +95,7 @@ src/
         ChatBubble.tsx            ← 개별 메시지 버블 (내 것 / 상대방)
         ChatInput.tsx             ← 메시지 입력창 + 전송 버튼
         LiveIndicator.tsx         ← 펄싱 레드 점 + LIVE 상태 표시
-        TeamChatTabs.tsx          ← The Garage 내 팀 선택 탭 바
+        TeamChatTabs.tsx          ← The Garage 팀 선택 탭 바 (11개 팀, 내 팀 표시 + 타팀 열람)
 
     memes/
       types.ts                    ← Meme 타입 정의
@@ -127,7 +127,7 @@ src/
   lib/
     storage.ts                    ← localStorage 헬퍼 (getUserProfile, saveUserProfile)
     utils.ts                      ← KST 시간 변환, UUID 생성 등 공용 유틸
-    teams.ts                      ← 10개 팀 정적 데이터 (id, name, baseColor, logo)
+    teams.ts                      ← 11개 팀 정적 데이터 (id, name, fullName, baseColor, logo, drivers) + 권한 헬퍼
 ```
 
 ### 폴더 역할
@@ -187,10 +187,13 @@ src/
 ### 기본 타입
 
 ```ts
-// lib/storage.ts
+// lib/types.ts
+// 응원 팀을 정하지 않은("none") / 모든 팀을 응원하는("all") 가상 식별자
+export type SpecialTeamId = 'none' | 'all';
+
 export type UserProfile = {
-  nickname: string;       // 1–15자, localStorage 저장
-  selectedTeamId: string; // 10개 팀 ID 중 하나
+  nickname: string;                          // 1–15자, localStorage 저장
+  selectedTeamId: Team['id'] | SpecialTeamId; // 11개 팀 ID 중 하나, 또는 가상 옵션
 };
 
 // features/chat/types.ts
@@ -217,13 +220,22 @@ export type Meme = {
   createdAt: string;      // ISO 8601
 };
 
-// lib/teams.ts
+// lib/teams.ts  — 2026 시즌 11개 팀
 export type Team = {
   id: string;
-  name: string;           // e.g. "Ferrari"
-  baseColor: string;      // hex, e.g. "#DC0000"
-  logo: string;           // emoji
+  name: string;                        // e.g. "Ferrari"
+  fullName: string;                    // e.g. "Scuderia Ferrari HP"
+  baseColor: string;                   // hex, e.g. "#DC0000"
+  logo: string;                        // emoji
+  drivers: readonly [string, string];  // 드라이버 2명 "한글 (English)"
 };
+
+// 작성 권한 헬퍼 (lib/teams.ts)
+//   canPostInTeamChat(profile, teamId):
+//     selectedTeamId === teamId  → true (자기 팀)
+//     selectedTeamId === 'all'   → true (올팬, 모든 팀)
+//     selectedTeamId === 'none'  → false (열람만)
+//   isRealTeam(id) / SPECIAL_TEAM_IDS / defaultGarageTeamId(profile)
 
 // features/f1guide/types.ts
 export type GuideCategory = 'terminology' | 'race-format' | 'race-weekend';
@@ -265,7 +277,7 @@ export type ConstructorStanding = {
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `nickname` | `string` | Yes | 화면에 표시되는 닉네임 (1–15자) |
-| `selectedTeamId` | `string` | Yes | 선택한 팀의 ID |
+| `selectedTeamId` | `Team['id'] \| SpecialTeamId` | Yes | 11개 팀 ID 중 하나, 또는 `'none'`(응원 팀 없음)·`'all'`(올팬) |
 
 ### ChatMessage 추가 필드
 
@@ -383,11 +395,12 @@ User Action (밈 업로드 완료)
 |---|---|---|
 | 닉네임 필수 | 비어 있으면 완료 버튼 비활성화 | OnboardingModal, ProfileEditModal |
 | 닉네임 길이 | 1–15자 이내 | OnboardingModal, ProfileEditModal |
-| 팀 선택 필수 | 팀 선택 전 완료 버튼 비활성화 | OnboardingModal |
+| 팀 선택 필수 | 실제 팀 또는 가상 옵션("none"·"all") 중 하나 선택 전 완료 버튼 비활성화 | OnboardingModal |
+| 팀 채팅 작성 권한 | `canPostInTeamChat(profile, teamId)` false면 입력창 잠금 + 읽기 전용 배지 | ChatRoom (The Garage) |
 | 채팅 메시지 필수 | 빈 메시지 전송 불가 (전송 버튼 비활성화) | ChatInput |
 | 밈 이미지 URL 필수 | URL 비어 있으면 게시 버튼 비활성화 | MemeUploadModal |
 | 밈 URL 형식 | URL 형식 검증 (`new URL()` 또는 정규식) | MemeUploadModal |
-| 유효 팀 ID | 10개 팀 중 하나여야 함 | TeamSelectorGrid |
+| 유효 팀 ID | 11개 팀 또는 가상 옵션이어야 함. 알 수 없는 값이면 `getUserProfile`이 null 반환 → 온보딩 재실행 | TeamSelectorGrid, storage.ts |
 | 민감 정보 미저장 | localStorage에 민감 개인정보 저장 금지 | lib/storage.ts |
 
 ---
@@ -493,5 +506,5 @@ Claude Code는 각 회차에서 아래 순서를 따른다.
 | 밈 URL 유효성 검증 수준은? | 3회차 중 | `new URL()` 기본 형식 검증만 |
 | setInterval 시뮬레이터 주기는? | 3회차 중 | 7초 간격 (참조 구현체 기준) |
 | Pit Wall 데이터는 2025 시즌인가 2026 시즌인가? | 3회차 시작 전 | 2026 시즌 (현재 날짜 기준) |
-| 팀 수는 10개인가? (Sauber·RB 포함) | 3회차 시작 전 | 10개 팀 (2026 시즌 그리드 기준) |
+| 팀 수는 몇 개인가? | ✅ 확정 (change: expand-team-roster-and-cross-team-chat) | 2026 시즌 11개 팀 (Audi·Cadillac 진입, Sauber·VCARB 대체) |
 | 배포 플랫폼은 Vercel인가? | 4회차 시작 전 | Vercel (Next.js 공식 플랫폼) |

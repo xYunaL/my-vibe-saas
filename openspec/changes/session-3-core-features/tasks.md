@@ -11,10 +11,10 @@ section: tasks
 
 - [ ] `lib/storage.ts` `saveUserProfile` / `getUserProfile` 구현 (파일 존재, 함수 내용 연결)
 - [ ] `OnboardingModal` 닉네임 입력 상태(useState) 연결
-- [ ] `TeamSelectorGrid` 팀 선택 상태 연결 (선택 팀 시각적 활성화)
-- [ ] 완료 버튼 disabled 조건 (닉네임 비어 있거나 팀 미선택)
-- [ ] 완료 버튼 클릭 → `saveUserProfile` → 모달 닫힘 → Main Straight 탭 이동
-- [ ] 앱 진입 시 `getUserProfile()` 확인 → null이면 모달 자동 표시
+- [ ] `TeamSelectorGrid` 팀 선택 상태 연결 (선택 팀 시각적 활성화) — 11개 팀 + 가상 옵션 2개("none"·"all") 포함 *(change: expand-team-roster-and-cross-team-chat)*
+- [ ] 완료 버튼 disabled 조건 (닉네임 비어 있거나 선택 없음). 가상 옵션도 "선택"으로 인정
+- [ ] 완료 버튼 클릭 → `saveUserProfile` → 모달 닫힘 → Main Straight 탭 이동 (프로필 종류 무관)
+- [ ] 앱 진입 시 `getUserProfile()` 확인 → null이면 모달 자동 표시 (알 수 없는 `selectedTeamId`도 null 처리)
 - [ ] 모달 포커스 트랩 (열릴 때 닉네임 input으로 포커스)
 - [ ] AC-001 수동 QA 통과 확인
 
@@ -42,10 +42,11 @@ section: tasks
 **Status:** todo
 
 - [ ] `useChatMessages('team', teamId)` hook — teamId 기준 필터링
-- [ ] `TeamChatTabs` — 10개 팀 탭 바, 기본: userProfile.selectedTeamId 팀 활성
-- [ ] 탭 전환 시 해당 팀 메시지만 표시
-- [ ] 메시지 전송 시 현재 선택된 teamId에 저장
-- [ ] AC-003 수동 QA 통과 확인 (팀 채팅방 격리)
+- [ ] `TeamChatTabs` — 11개 팀 탭 바. 기본 활성: `defaultGarageTeamId(profile)` (실제 팀=자기 팀, "all"/"none"=TEAMS[0]). 내 팀 골드 점 표시 *(change: expand-team-roster-and-cross-team-chat)*
+- [ ] 탭 전환 시 해당 팀 메시지만 표시 — **타팀 채팅도 읽기 가능**
+- [ ] 입력창 작성 권한 게이팅: `canPostInTeamChat(profile, activeTeamId)` false면 입력창 잠금 + "읽기 전용" 배지 표시
+- [ ] 작성 권한 있을 때만 메시지 전송 → 현재 선택된 teamId에 저장
+- [ ] AC-003 수동 QA 통과 확인 (자기 팀 작성 / 타팀 읽기 전용 / 올팬 전체 작성 / 응원 팀 없음 전체 읽기 전용)
 
 ---
 

@@ -1,4 +1,5 @@
 import type { UserProfile } from "./types";
+import { isKnownProfileTeamId } from "./teams";
 
 const KEY = "paddock-korea:user-profile";
 
@@ -9,6 +10,7 @@ export function getUserProfile(): UserProfile | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as UserProfile;
     if (!parsed.nickname || !parsed.selectedTeamId) return null;
+    if (!isKnownProfileTeamId(parsed.selectedTeamId)) return null;
     return parsed;
   } catch {
     return null;

@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { F1_GUIDE, GUIDE_CATEGORIES } from "./data";
+import { F1GuideCard } from "./F1GuideCard";
 import { cn } from "@/lib/utils";
 
 /**
- * F1101 Guide shell (Session 2).
- * Category filter UI is live; card inline expansion lands in Session 3 (FR-009).
+ * F1 101 guide (FR-009). Category tabs + inline-expandable cards.
  */
 export function F1101Guide() {
   const [category, setCategory] = useState(GUIDE_CATEGORIES[0]);
@@ -47,24 +47,7 @@ export function F1101Guide() {
 
       <ul className="mt-5 grid gap-3 sm:grid-cols-2">
         {entries.map((entry) => (
-          <li
-            key={entry.id}
-            className="rounded-xl border border-white/8 bg-[var(--color-charcoal-700)] p-4"
-          >
-            <h3 className="font-display text-base font-bold text-white">
-              {entry.term}
-            </h3>
-            <p className="mt-1 text-sm text-white/65 leading-relaxed">
-              {entry.shortDesc}
-            </p>
-            <button
-              type="button"
-              disabled
-              className="mt-3 font-mono text-[10px] uppercase tracking-wider text-white/40"
-            >
-              자세히 보기 (Session 3)
-            </button>
-          </li>
+          <F1GuideCard key={entry.id} entry={entry} />
         ))}
       </ul>
     </section>

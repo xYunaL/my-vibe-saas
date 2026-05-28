@@ -1,46 +1,90 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppHeader, type TabId } from "@/components/layout/AppHeader";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { ChatRoom } from "@/features/chat/ChatRoom";
 import { MemeFeed } from "@/features/memes/MemeFeed";
 import { F1101Guide } from "@/features/f1guide/F1101Guide";
 import { PitWallPage } from "@/features/pitwall/PitWallPage";
+import { defaultGarageTeamId } from "@/lib/teams";
+import { getUserProfile, saveUserProfile } from "@/lib/storage";
+import type { UserProfile } from "@/lib/types";
 
 export default function AppPage() {
   const [activeTab, setActiveTab] = useState<TabId>("main-straight");
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [garageTeamId, setGarageTeamId] = useState<string>(() =>
+    defaultGarageTeamId(null)
+  );
+
+  // Load saved profile on first mount; open onboarding if none exists.
+  // localStorage is client-only, so this must run in an effect (a lazy
+  // useState initializer would mismatch during server prerender).
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const saved = getUserProfile();
+    if (saved) {
+      setProfile(saved);
+      setGarageTeamId(defaultGarageTeamId(saved));
+    } else {
+      setOnboardingOpen(true);
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  function handleComplete(next: UserProfile) {
+    saveUserProfile(next);
+    setProfile(next);
+    setGarageTeamId(defaultGarageTeamId(next));
+    setOnboardingOpen(false);
+    setEditingProfile(false);
+    if (!editingProfile) setActiveTab("main-straight");
+  }
+
+  function openProfileEdit() {
+    setEditingProfile(true);
+    setOnboardingOpen(true);
+  }
 
   return (
     <div className="carbon-grid flex flex-1 flex-col">
-      <AppHeader activeTab={activeTab} onTabChange={setActiveTab} />
+      <AppHeader
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        profile={profile}
+        onProfileClick={openProfileEdit}
+      />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-white/45">
-            Session 2 — Shell preview
-          </p>
-          <button
-            type="button"
-            onClick={() => setOnboardingOpen(true)}
-            className="rounded-full border border-white/10 px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-white/65 hover:text-white"
-          >
-            온보딩 미리보기
-          </button>
-        </div>
-
-        {activeTab === "main-straight" && <ChatRoom roomType="global" />}
-        {activeTab === "garage" && <ChatRoom roomType="team" teamName="팀 미선택" />}
-        {activeTab === "meme" && <MemeFeed />}
+        {activeTab === "main-straight" && (
+          <ChatRoom roomType="global" profile={profile} />
+        )}
+        {activeTab === "garage" && (
+          <ChatRoom
+            roomType="team"
+            profile={profile}
+            activeTeamId={garageTeamId}
+            onTeamChange={setGarageTeamId}
+          />
+        )}
+        {activeTab === "meme" && <MemeFeed profile={profile} />}
         {activeTab === "f1-101" && <F1101Guide />}
         {activeTab === "pit-wall" && <PitWallPage />}
       </main>
 
-      <OnboardingModal
-        open={onboardingOpen}
-        onClose={() => setOnboardingOpen(false)}
-      />
+      {onboardingOpen && (
+        <OnboardingModal
+          initialProfile={editingProfile ? profile : null}
+          onClose={() => {
+            setOnboardingOpen(false);
+            setEditingProfile(false);
+          }}
+          onComplete={handleComplete}
+        />
+      )}
     </div>
   );
 }

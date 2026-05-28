@@ -1,6 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { getTeam, SPECIAL_TEAM_CARDS } from "@/lib/teams";
+import type { UserProfile } from "@/lib/types";
 
 export type TabId = "main-straight" | "garage" | "meme" | "f1-101" | "pit-wall";
 
@@ -15,9 +17,23 @@ export const TABS: { id: TabId; label: string }[] = [
 type Props = {
   activeTab: TabId;
   onTabChange: (id: TabId) => void;
+  profile?: UserProfile | null;
+  onProfileClick?: () => void;
 };
 
-export function AppHeader({ activeTab, onTabChange }: Props) {
+function profileBadge(profile: UserProfile | null | undefined): {
+  icon: string;
+  label: string;
+} {
+  if (!profile) return { icon: "👤", label: "Guest" };
+  const team = getTeam(profile.selectedTeamId);
+  if (team) return { icon: team.logo, label: profile.nickname };
+  const special = SPECIAL_TEAM_CARDS.find((c) => c.id === profile.selectedTeamId);
+  return { icon: special?.icon ?? "👤", label: profile.nickname };
+}
+
+export function AppHeader({ activeTab, onTabChange, profile, onProfileClick }: Props) {
+  const badge = profileBadge(profile);
   return (
     <header className="sticky top-0 z-30 border-b border-white/5 bg-[var(--color-charcoal-800)]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-4">
@@ -56,10 +72,18 @@ export function AppHeader({ activeTab, onTabChange }: Props) {
           })}
         </nav>
 
-        <div className="flex items-center gap-2 rounded-full bg-[var(--color-charcoal-700)] px-3 py-1.5 text-xs text-white/70">
-          <span className="text-base" aria-hidden>👤</span>
-          <span className="font-mono uppercase tracking-wider">Guest</span>
-        </div>
+        <button
+          type="button"
+          onClick={onProfileClick}
+          disabled={!onProfileClick}
+          className="flex items-center gap-2 rounded-full bg-[var(--color-charcoal-700)] px-3 py-1.5 text-xs text-white/70 transition-colors enabled:hover:text-white disabled:cursor-default"
+          aria-label={profile ? `프로필: ${badge.label}` : "프로필 설정"}
+        >
+          <span className="text-base" aria-hidden>{badge.icon}</span>
+          <span className="max-w-[8rem] truncate font-mono tracking-wider">
+            {badge.label}
+          </span>
+        </button>
       </div>
 
       {/* Mobile tab strip */}
