@@ -2,6 +2,8 @@
 
 > 흩어진 한국 F1 팬을 한곳에 모으는 팀 기반 커뮤니티 + 입문 가이드 앱
 
+**🔗 라이브: [paddockkorea.vercel.app](https://paddockkorea.vercel.app)**
+
 유튜브·오픈채팅·블로그로 흩어진 한국의 2030 F1 신규 팬이, **좋아하는 팀을 응원하고 함께 소통하며 F1을 쉽게 배우도록** 돕는 웹 서비스입니다. 바이브 코딩 실전 특강의 Micro SaaS MVP 프로젝트입니다.
 
 ---
@@ -82,7 +84,7 @@ pnpm exec playwright show-report
 
 ## 🌐 배포 URL
 
-아직 배포 전입니다. Vercel 배포 후 이곳에 URL을 추가합니다.
+**https://paddockkorea.vercel.app**
 
 ---
 
