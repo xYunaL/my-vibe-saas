@@ -2,6 +2,7 @@
 
 import { formatKstMonthDay, cn } from "@/lib/utils";
 import { authorColor } from "./authorColor";
+import { BoardImage } from "./BoardImage";
 import type { Post } from "./types";
 
 type Props = {
@@ -27,6 +28,11 @@ export function PostCard({ post, liked, onOpen, onToggleLike }: Props) {
         >
           {post.body}
         </p>
+        {post.imageUrl && (
+          <div className="mt-3">
+            <BoardImage src={post.imageUrl} className="max-h-56" />
+          </div>
+        )}
         <div className="mt-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider">
           <span style={{ color }}>{post.authorNickname}</span>
           <span className="text-[var(--text-faint)]">·</span>

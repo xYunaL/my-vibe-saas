@@ -173,13 +173,14 @@ export function BoardView({ profile, board, onOpenPost }: Props) {
         <PostComposer
           scopeLabel={scopeLabel}
           onClose={() => setComposerOpen(false)}
-          onSubmit={({ title, body }) => {
+          onSubmit={({ title, body, imageUrl }) => {
             if (!profile) return;
             board.addPost({
               scope,
               teamId: scope === "team" ? activeTeamId : undefined,
               title,
               body,
+              imageUrl,
               profile,
             });
             setSortOrder("latest");

@@ -5,7 +5,6 @@ export type Comment = {
   authorNickname: string;
   authorTeamId: string;
   text: string;
-  imageUrl?: string;
   createdAt: string;
 };
 
@@ -16,6 +15,8 @@ export type Post = {
   teamId?: string;
   title: string;
   body: string;
+  /** Optional attached image URL (http/https). */
+  imageUrl?: string;
   authorNickname: string;
   authorTeamId: string;
   likes: number;

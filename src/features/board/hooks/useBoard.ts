@@ -13,6 +13,7 @@ type AddPostInput = {
   teamId?: string;
   title: string;
   body: string;
+  imageUrl?: string;
   profile: UserProfile;
 };
 
@@ -30,13 +31,14 @@ export function useBoard() {
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
   const addPost = useCallback(
-    ({ scope, teamId, title, body, profile }: AddPostInput) => {
+    ({ scope, teamId, title, body, imageUrl, profile }: AddPostInput) => {
       const post: Post = {
         id: newId("post"),
         scope,
         teamId: scope === "team" ? teamId : undefined,
         title: title.trim(),
         body: body.trim(),
+        imageUrl: imageUrl?.trim() || undefined,
         authorNickname: profile.nickname,
         authorTeamId: primaryTeamId(profile) ?? "",
         likes: 0,
@@ -67,10 +69,9 @@ export function useBoard() {
   );
 
   const addComment = useCallback(
-    (postId: string, text: string, profile: UserProfile, imageUrl?: string) => {
+    (postId: string, text: string, profile: UserProfile) => {
       const trimmed = text.trim();
-      const url = imageUrl?.trim() || undefined;
-      if (!trimmed && !url) return;
+      if (!trimmed) return;
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
@@ -83,7 +84,6 @@ export function useBoard() {
                     authorNickname: profile.nickname,
                     authorTeamId: primaryTeamId(profile) ?? "",
                     text: trimmed,
-                    imageUrl: url,
                     createdAt: new Date().toISOString(),
                   },
                 ],
