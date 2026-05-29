@@ -16,21 +16,33 @@ User (Browser)
 → Next.js App (App Router)
 → Pages / Routes  (/  |  /app)
 → UI Components   (ui / layout / onboarding)
-→ Feature Modules (chat / memes / f1guide / pitwall)
-→ Custom Hooks    (useChatMessages / useMemes)
-→ Client State    (React useState / Context)
-→ Storage         (localStorage — UserProfile only)
-→ Static Data     (data.ts — Teams / F1 101 / Pit Wall 폴백)
-→ Route Handler   (/api/pitwall → OpenF1, ISR + 폴백)
-→ Future Backend  (Server Actions / DB — 4회차 이후)
+→ Feature Modules (home / chat / board / cheer / memes / f1guide / pitwall / mypage)
+→ Custom Hooks    (useChatMessages / useBoard / useMemes / useCheer)
+→ Client State    (React useState)
+→ Storage         (localStorage — UserProfile + CheerState + theme)
+→ Static Data     (data.ts — Teams / F1 101 / Cheer seed / Pit Wall 폴백)
+→ Route Handler   (/api/pitwall, /api/pitwall/session/[sessionKey] → OpenF1, ISR + 폴백)
+→ Future Backend  (인증 / DB / 실시간 — 고도화 단계)
 ```
 
-### 이번 MVP의 구현 범위
+### 현재 구현 범위
 
-- 단일 사용자 기준 (로그인 없음)
+- 단일 사용자 기준 (로그인 없음, localStorage 프로필)
 - 프론트엔드 중심 구현 (Next.js + React)
 - 서버 DB 없이 localStorage + 인메모리 State + 정적 데이터 사용
-- 인증, 결제, WebSocket 실시간 기능 제외
+- 채팅은 setInterval 시뮬레이터 (실제 실시간 미연동)
+- 외부 API는 OpenF1 하나 (Pit Wall 순위·일정·세션 결과)
+
+### 고도화 단계에서 해제된 제약 (도입 가능)
+
+> CLAUDE.md Boundaries 참조. 아래는 초기 MVP에서 제외했으나 이제 도입 가능하며, 도입 시 §15 Decision Log·§18 로드맵에 기록한다.
+
+- **인증/계정** — localStorage 단일 사용자 → 소셜 로그인·다중 사용자
+- **실시간** — setInterval 시뮬레이터 → WebSocket/실시간 구독
+- **백엔드/DB** — 인메모리 State → Supabase/Firebase 등 영속화
+- **파일 업로드** — 밈 이미지 URL → 실제 파일 업로드
+
+여전히 제외: 결제, 추가 외부 API(OpenF1 외).
 
 ---
 
@@ -61,75 +73,80 @@ User (Browser)
 
 ## 5. Source Structure
 
+> 실제 구현(src/) 기준. 일부 기능은 평면 구조(별도 `components/` 하위 폴더 없이 feature 루트에 컴포넌트 배치)를 사용한다.
+
 ```text
 src/
   app/
-    layout.tsx                    ← 전역 레이아웃 (폰트, 메타데이터)
+    layout.tsx                    ← 전역 레이아웃 (폰트, 메타데이터, 테마)
+    globals.css                   ← Tailwind v4 + CSS 변수(라이트/다크 테마 토큰)
     page.tsx                      ← Landing Page
     app/
-      page.tsx                    ← App Shell (탭 네비게이션 + 기능 라우팅)
+      page.tsx                    ← App Shell (6탭 네비게이션 + 기능 라우팅, 프로필/온보딩 상태)
+    api/
+      pitwall/route.ts            ← OpenF1 순위·일정 집계 (ISR + 폴백)
+      pitwall/session/[sessionKey]/route.ts ← 세션별 결과
 
   components/
     ui/
       Button.tsx                  ← Primary / Secondary / Ghost 버튼
-      Input.tsx                   ← 텍스트 입력 필드
-      Card.tsx                    ← 기본 카드 컨테이너
-      Modal.tsx                   ← 모달 오버레이 + 카드
-      Badge.tsx                   ← Monospace 배지 태그
       EmptyState.tsx              ← 콘텐츠 없음 안내
     layout/
-      AppHeader.tsx               ← 상단 고정 내비게이션
-      ProfileWidget.tsx           ← 팀 로고 + 닉네임 프로필 위젯
-      ProfileEditModal.tsx        ← 닉네임·팀 변경 모달
+      AppHeader.tsx               ← 상단 고정 내비게이션(6탭) + 테마 토글 + 프로필 위젯
+      ThemeToggle.tsx             ← 라이트/다크 테마 전환
     onboarding/
       OnboardingModal.tsx         ← 첫 진입 온보딩 오버레이
-      TeamSelectorGrid.tsx        ← 11개 팀 + 가상 옵션("none"·"all") 선택 그리드
+      TeamPickerGrid.tsx          ← 11개 팀 + 가상 옵션("none"·"all") 선택 그리드 (최대 2팀, 온보딩·My Page 공용)
 
   features/
+    home/
+      HomeView.tsx                ← 그랑프리 현황 + 응원/랭킹 + 전체 채팅 대시보드
     chat/
-      types.ts                    ← ChatMessage 타입 정의
-      mock-data.ts                ← 초기 시뮬레이션 메시지 데이터
-      hooks/
-        useChatMessages.ts        ← 채팅 상태 + setInterval 시뮬레이터
-      components/
-        ChatRoom.tsx              ← 채팅 메시지 목록 + 입력 폼
-        ChatBubble.tsx            ← 개별 메시지 버블 (내 것 / 상대방)
-        ChatInput.tsx             ← 메시지 입력창 + 전송 버튼
-        LiveIndicator.tsx         ← 펄싱 레드 점 + LIVE 상태 표시
-        TeamChatTabs.tsx          ← The Garage 팀 선택 탭 바 (11개 팀, 내 팀 표시 + 타팀 열람)
-
+      types.ts                    ← ChatMessage 타입
+      mock-data.ts                ← 초기 시뮬레이션 메시지
+      hooks/useChatMessages.ts    ← 채팅 상태 + setInterval 시뮬레이터
+      GlobalChatRoom.tsx          ← 전체 채팅 목록 + 입력 폼 (컴팩트/전체화면)
+      ChatBubble.tsx              ← 개별 메시지 버블
+      ChatShell.tsx               ← 채팅 레이아웃 셸
+      LiveIndicator.tsx           ← 펄싱 레드 점 + LIVE 상태
+    board/
+      types.ts                    ← Post, Comment, BoardScope 타입
+      mock-data.ts                ← 초기 게시글 샘플
+      hooks/useBoard.ts           ← 게시글 상태 + 글/댓글/좋아요 로직
+      BoardView.tsx               ← 전체/팀 스코프 + 정렬 + 권한 컨테이너
+      BoardTeamTabs.tsx           ← 팀 선택 탭 바
+      PostCard.tsx                ← 개별 게시글 카드 (좋아요·댓글)
+      PostComposer.tsx            ← 글 작성 모달
+    cheer/
+      data.ts                     ← BASE_CHEERS 팀별 시드 baseline
+      hooks/useCheer.ts           ← 응원 상태(하루 1회) + 랭킹 계산
+      CheerPanel.tsx              ← 내 팀 응원 버튼
+      CheerRanking.tsx            ← 팀별 누적 응원 랭킹
     memes/
-      types.ts                    ← Meme 타입 정의
-      mock-data.ts                ← 초기 밈 샘플 데이터
-      hooks/
-        useMemes.ts               ← 밈 목록 상태 + 좋아요 로직
-      components/
-        MemeFeed.tsx              ← 밈 그리드 + 카테고리 필터
-        MemeCard.tsx              ← 개별 밈 카드
-        MemeUploadModal.tsx       ← 밈 업로드 입력 모달
-        MemeFilterBar.tsx         ← 카테고리 필터 칩 바
-
+      types.ts                    ← Meme 타입
+      mock-data.ts                ← 초기 밈 샘플
+      hooks/useMemes.ts           ← 밈 목록 상태 + 좋아요 로직
+      MemeFeed.tsx                ← 밈 그리드 + 필터 + 업로드 진입
+      MemeCard.tsx                ← 개별 밈 카드
+      MemeUploadModal.tsx         ← 밈 업로드 입력 모달
     f1guide/
-      types.ts                    ← F1GuideEntry 타입 정의
-      data.ts                     ← F1 101 정적 데이터 (용어·경기방식·위켄드)
-      components/
-        F1101Guide.tsx            ← 카테고리 탭 + 카드 그리드 컨테이너
-        F1GuideCard.tsx           ← 개별 가이드 카드 (인라인 확장)
-
+      types.ts                    ← F1GuideEntry 타입
+      data.ts                     ← F1 101 정적 데이터
+      F1101Guide.tsx              ← 카테고리 탭 + 카드 그리드
+      F1GuideCard.tsx             ← 개별 가이드 카드 (인라인 확장)
     pitwall/
-      types.ts                    ← DriverStanding, ConstructorStanding, RaceSchedule 타입
-      data.ts                     ← Pit Wall 정적 폴백 (순위·일정), OpenF1 실패 시 사용
+      types.ts                    ← DriverStanding, ConstructorStanding, RaceSchedule, RaceSession, SessionResult 타입
+      data.ts                     ← Pit Wall 정적 폴백 (OpenF1 실패 시)
       openf1.ts                   ← OpenF1 fetch·정규화 (서버 전용)
-      components/
-        PitWallPage.tsx           ← 순위 + 일정 레이아웃 컨테이너
-        DriverStandingsTable.tsx  ← 드라이버 챔피언십 테이블
-        ConstructorStandingsGrid.tsx ← 컨스트럭터 카드 그리드
-        RaceScheduleList.tsx      ← KST 경기 일정 목록
+      PitWallPage.tsx             ← 순위 + 일정 + 세션 결과 컨테이너
+    mypage/
+      MyPageView.tsx              ← 프로필 편집 + 테마 + 내 글
 
   lib/
-    storage.ts                    ← localStorage 헬퍼 (getUserProfile, saveUserProfile)
-    utils.ts                      ← KST 시간 변환, UUID 생성 등 공용 유틸
-    teams.ts                      ← 11개 팀 정적 데이터 (id, name, fullName, baseColor, logo, drivers) + 권한 헬퍼
+    types.ts                      ← Team, SpecialTeamId, UserProfile(selectedTeamIds) 공용 타입
+    teams.ts                      ← 11개 팀 정적 데이터 + 권한/선택 헬퍼
+    storage.ts                    ← localStorage 헬퍼 (UserProfile + CheerState, 레거시 마이그레이션)
+    utils.ts                      ← KST 시간 변환, todayKst, cn 등 공용 유틸
 ```
 
 ### 폴더 역할
@@ -226,6 +243,38 @@ export type Meme = {
   createdAt: string;      // ISO 8601
 };
 
+// features/board/types.ts
+export type BoardScope = 'global' | 'team';
+
+export type Comment = {
+  id: string;
+  authorNickname: string;
+  authorTeamId: string;
+  text: string;
+  createdAt: string;
+};
+
+export type Post = {
+  id: string;
+  scope: BoardScope;
+  teamId?: string;        // scope === 'team' 일 때만 존재
+  title: string;
+  body: string;
+  authorNickname: string;
+  authorTeamId: string;
+  likes: number;
+  createdAt: string;
+  comments: Comment[];
+};
+
+// lib/storage.ts — 응원 상태 (localStorage)
+export type CheerState = {
+  myCheers: Record<string, number>;  // teamId → 사용자 누적 응원 수
+  lastCheerDate: string | null;      // KST YYYY-MM-DD, 하루 1회 제한용
+};
+// features/cheer/data.ts: BASE_CHEERS — 팀별 시드 baseline
+// 랭킹 total = BASE_CHEERS[teamId] + myCheers[teamId]
+
 // lib/teams.ts  — 2026 시즌 11개 팀
 export type Team = {
   id: string;
@@ -255,11 +304,27 @@ export type F1GuideEntry = {
 };
 
 // features/pitwall/types.ts
+export type RaceStatus = 'upcoming' | 'completed';
+
+export type RaceSession = {
+  sessionKey: number;
+  name: string;           // "Practice 1" | "Qualifying" | "Sprint" | "Race"
+  type: string;           // "Practice" | "Qualifying" | "Race"
+  startUtc: string;
+  endUtc: string;
+  completed: boolean;
+};
+
 export type RaceSchedule = {
   round: number;
   grandPrix: string;
-  dateKST: string;        // 'YYYY-MM-DD HH:MM KST'
-  status: 'upcoming' | 'completed';
+  country: string;
+  dateUtc: string;        // ISO UTC; 렌더 시 KST 변환
+  status: RaceStatus;
+  meetingKey: number;
+  startUtc: string;       // GP 위켄드 첫 세션 시작
+  endUtc: string;         // GP 위켄드 마지막 세션 종료
+  sessions: RaceSession[];
 };
 
 export type DriverStanding = {
@@ -268,6 +333,7 @@ export type DriverStanding = {
   code: string;           // e.g. "VER"
   teamId: string;
   points: number;
+  headshotUrl?: string;   // OpenF1 제공, 폴백 데이터엔 없음
 };
 
 export type ConstructorStanding = {
@@ -276,6 +342,26 @@ export type ConstructorStanding = {
   name: string;
   points: number;
 };
+
+export type SessionResultRow = {
+  position: number;
+  driverNumber: number;
+  name: string;
+  code: string;
+  teamId: string;
+  headshotUrl?: string;
+  points?: number;        // Race/Sprint만
+  dnf?: boolean;
+  dns?: boolean;
+  dsq?: boolean;
+};
+
+export type SessionResult = {
+  sessionName: string;
+  sessionType: string;
+  hasPoints: boolean;     // Race/Sprint이면 true
+  rows: SessionResultRow[];
+};
 ```
 
 ### UserProfile 필드
@@ -283,7 +369,7 @@ export type ConstructorStanding = {
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `nickname` | `string` | Yes | 화면에 표시되는 닉네임 (1–15자) |
-| `selectedTeamId` | `Team['id'] \| SpecialTeamId` | Yes | 11개 팀 ID 중 하나, 또는 `'none'`(응원 팀 없음)·`'all'`(올팬) |
+| `selectedTeamIds` | `string[]` | Yes | 실제 팀 ID 0~2개, 또는 `['all']`(올팬). `[]` = 응원 팀 없음. `'none'`/`'all'`은 실제 팀과 혼용 불가. 헬퍼: `getRealTeamIds`·`primaryTeamId`·`isAllFan`·`hasNoTeam`·`toggleTeamSelection`(max 2)·`canPostInTeamChat`·`isKnownProfileTeamIds`. 레거시 단일 `selectedTeamId`는 `getUserProfile`에서 배열로 마이그레이션 |
 
 ### ChatMessage 추가 필드
 
@@ -310,25 +396,29 @@ export type ConstructorStanding = {
 
 | State | Type | 저장소 | 관리 위치 |
 |---|---|---|---|
-| `userProfile` | `UserProfile \| null` | localStorage | `lib/storage.ts` + OnboardingModal |
-| `globalMessages` | `ChatMessage[]` | 인메모리 | `useChatMessages` hook |
-| `teamMessages` | `Record<string, ChatMessage[]>` | 인메모리 | `useChatMessages` hook |
+| `profile` | `UserProfile \| null` | localStorage | `AppPage` + `lib/storage.ts` |
+| `messages` (global) | `ChatMessage[]` | 인메모리 | `useChatMessages('global')` hook |
+| `posts` | `Post[]` | 인메모리 | `useBoard` hook |
+| `likedIds` (board) | `Set<string>` | 인메모리 | `useBoard` hook |
 | `memes` | `Meme[]` | 인메모리 | `useMemes` hook |
-| `memeFilter` | `string` | 인메모리 | `MemeFeed` 컴포넌트 |
-| `activeTab` | `string` | 인메모리 | `AppPage` 컴포넌트 |
-| `showOnboarding` | `boolean` | 인메모리 | `AppPage` 컴포넌트 |
-| `showProfileEdit` | `boolean` | 인메모리 | `AppHeader` / `ProfileWidget` |
-| `showMemeUpload` | `boolean` | 인메모리 | `MemeFeed` 컴포넌트 |
+| cheer (`myCheers`, `lastCheerDate`) | `CheerState` | localStorage | `useCheer` hook + `lib/storage.ts` |
+| `activeTab` | `TabId` | 인메모리 | `AppPage` 컴포넌트 |
+| `onboardingOpen` | `boolean` | 인메모리 | `AppPage` 컴포넌트 |
+| theme | `'light' \| 'dark'` | localStorage | `ThemeToggle` |
+| board scope/sort/composer | local | 인메모리 | `BoardView` 컴포넌트 |
+| chat fullscreen | `boolean` | 인메모리 | `HomeView` 컴포넌트 |
+
+> 전체 채팅·게시판 상태는 탭 전환에도 유지되도록 `AppPage` 레벨로 끌어올려져 있다(`useChatMessages`, `useBoard`).
 
 ### 상태 관리 방식
 
-이번 MVP에서는 별도 상태 관리 라이브러리를 사용하지 않는다.
+현재는 별도 상태 관리 라이브러리를 사용하지 않는다. (다중 사용자·실시간 도입 시 Context/Zustand + 서버 상태 재검토)
 
 - React `useState` — 컴포넌트 로컬 상태
-- React `useEffect` — 채팅 시뮬레이터 setInterval, 자동 스크롤
+- React `useEffect` — 채팅 시뮬레이터 setInterval, 자동 스크롤, localStorage 로드
 - React `useRef` — 채팅 스크롤 하단 참조
-- `useChatMessages` / `useMemes` — 기능별 커스텀 훅으로 로직 분리
-- `lib/storage.ts` — localStorage 헬퍼 함수 (getUserProfile, saveUserProfile)
+- `useChatMessages` / `useBoard` / `useMemes` / `useCheer` — 기능별 커스텀 훅으로 로직 분리
+- `lib/storage.ts` — localStorage 헬퍼 (getUserProfile / saveUserProfile / clearUserProfile, getCheerState / saveCheerState)
 
 ---
 
@@ -338,12 +428,12 @@ export type ConstructorStanding = {
 
 | Option | Decision |
 |---|---|
-| DB | 사용하지 않음 |
-| API Server | 사용하지 않음 |
-| localStorage | UserProfile 전용 저장소 (nickname + selectedTeamId) |
-| 인메모리 State | 채팅 메시지, 밈 피드 (새로고침 시 초기화) |
-| 정적 data.ts | F1 101 가이드, 팀/드라이버 라인업 + Pit Wall 폴백 데이터 |
-| 외부 API (OpenF1) | Pit Wall 드라이버·컨스트럭터 순위 + 경기 일정 (`/api/pitwall` Route Handler, ISR + 폴백) |
+| DB | 현재 미사용 (고도화 단계에서 도입 가능 — §18 로드맵) |
+| API Server | OpenF1 집계용 Route Handler만 사용 |
+| localStorage | `paddock-korea:user-profile`(nickname + selectedTeamIds), `paddock-korea:cheer`(CheerState), 테마 설정. 레거시 `selectedTeamId` 자동 마이그레이션 |
+| 인메모리 State | 채팅 메시지, 게시판 글·댓글·좋아요, 밈 피드 (새로고침 시 초기화) |
+| 정적 data.ts | F1 101 가이드, 팀/드라이버 라인업, Cheer 시드 baseline, Pit Wall 폴백 데이터 |
+| 외부 API (OpenF1) | Pit Wall 순위 + 경기 일정 + 세션 결과 (`/api/pitwall`, `/api/pitwall/session/[sessionKey]`, ISR + 폴백) |
 
 ### 저장 흐름
 
@@ -378,11 +468,12 @@ User Action (밈 업로드 완료)
 
 | Route | Method | Purpose |
 |---|---|---|
-| `/api/pitwall` | `GET` | OpenF1(https://openf1.org)에서 드라이버·컨스트럭터 순위 + 2026 경기 일정을 서버에서 집계해 반환. ISR(`revalidate=3600`)로 캐싱하며, OpenF1 호출 실패 시 정적 `features/pitwall/data.ts`로 폴백한다. 응답에 `source: "openf1" \| "fallback"` 포함. |
+| `/api/pitwall` | `GET` | OpenF1(https://openf1.org)에서 드라이버·컨스트럭터 순위 + 2026 경기 일정(세션 메타 포함)을 서버에서 집계해 반환. ISR(`revalidate=3600`) 캐싱, 실패 시 정적 `features/pitwall/data.ts`로 폴백. 응답에 `source: "openf1" \| "fallback"` 포함. |
+| `/api/pitwall/session/[sessionKey]` | `GET` | 특정 세션의 결과 테이블(`SessionResult`) 반환 — 순위·드라이버·헤드샷·포인트·DNF/DNS/DSQ. |
 
 > OpenF1 호출은 free tier rate limit(3 req/s)를 피하기 위해 **순차** 호출한다. 드라이버 헤드샷(`headshot_url`)·`team_name`은 `championship_*` 응답과 `drivers` 엔드포인트를 `driver_number`로 조인해 정규화하며, `team_name`은 `TEAM_NAME_TO_ID`로 내부 teamId에 매핑한다.
 
-채팅·밈·프로필·F1 101은 여전히 서버 API 없이 클라이언트 State + localStorage + 정적 data.ts로 동작한다.
+채팅·게시판·밈·응원·프로필·F1 101은 여전히 서버 API 없이 클라이언트 State + localStorage + 정적 data.ts로 동작한다. (고도화 단계에서 DB/실시간 API 도입 가능)
 
 ### 향후 확장 시 API 후보
 
@@ -473,8 +564,13 @@ User Action (밈 업로드 완료)
 | 이미지 URL 방식 밈 | "대용량 파일 업로드" 경계 회피 | 사용자가 이미지 URL을 직접 입력해야 함 |
 | 정적 data.ts로 F1 101 제공 | 교육 콘텐츠라 외부 API 불필요 | 수동 작성·갱신 |
 | Pit Wall 순위·일정만 OpenF1 단일 API 도입 (개정) | 실제 2026 시즌 순위·일정·드라이버 사진 제공. **단일** API라 "다중 외부 API 연동" 경계에 해당하지 않음. 서버 Route Handler + ISR 캐싱 + 정적 폴백으로 위험 최소화 | 외부 의존성 추가(폴백으로 완화), team_name·driver_number 매핑 유지보수 |
-| localStorage → UserProfile만 저장 | 단일 사용자 MVP, 민감정보 미저장 원칙 | 다중 사용자·기기 간 동기화 없음 |
-| 상태 관리 라이브러리 미사용 | useState + 커스텀 훅으로 MVP 범위 충분 | 기능 확장 시 Context API 또는 Zustand 도입 검토 |
+| localStorage → UserProfile + CheerState 저장 | 단일 사용자 MVP, 민감정보 미저장 원칙 | 다중 사용자·기기 간 동기화 없음 |
+| 상태 관리 라이브러리 미사용 | useState + 커스텀 훅으로 현재 범위 충분 | 다중 사용자·실시간 도입 시 Context/Zustand + 서버 상태 재검토 |
+| 응원 팀 최대 2개 (`selectedTeamIds: string[]`) | 복수 팀을 응원하는 팬 반영, "none"/"all" 가상 옵션 유지 | 단일 팀 가정 코드 제거, 레거시 `selectedTeamId` 마이그레이션 필요 |
+| 팀별 채팅(The Garage) → 게시판(Board)으로 발전 | 실시간 미연동 상태에서 비동기 글·댓글이 팀 커뮤니티에 더 적합 | 팀 채팅방 제거, 작성 권한 규칙(`canPostInTeamChat`)은 게시판에 재사용 |
+| 전체 채팅을 Home 대시보드에 통합 | 별도 탭 대신 그랑프리 현황·응원과 함께 한 화면에서 소비 | The Main Straight 단독 탭 제거 |
+| 응원(Cheer) 기능 추가 (하루 1회 +1 + 랭킹) | 팀 소속감을 가볍게 표현하는 패독 코리아 고유 지표 | 시드 baseline(`BASE_CHEERS`)로 단일 사용자에서도 랭킹 유의미하게 유지 |
+| 라이트/다크 테마 도입 | 접근성·사용자 선호. CSS 변수 토큰으로 구현 | DESIGN.md "dark mode only" 가정과 불일치 → DESIGN.md Known Gaps 갱신 |
 | lucide-react 아이콘 | 참조 구현체와 동일, Tree-shaking 우수 | 별도 아이콘 시스템 추가 금지 |
 
 ---
@@ -523,4 +619,26 @@ Claude Code는 각 회차에서 아래 순서를 따른다.
 | setInterval 시뮬레이터 주기는? | 3회차 중 | 7초 간격 (참조 구현체 기준) |
 | Pit Wall 데이터 출처는? | ✅ 확정 | OpenF1 API(2026 시즌) `/api/pitwall` 경유, 실패 시 정적 폴백 |
 | 팀 수는 몇 개인가? | ✅ 확정 (change: expand-team-roster-and-cross-team-chat) | 2026 시즌 11개 팀 (Audi·Cadillac 진입, Sauber·VCARB 대체) |
-| 배포 플랫폼은 Vercel인가? | 4회차 시작 전 | Vercel (Next.js 공식 플랫폼) |
+| 배포 플랫폼은 Vercel인가? | ✅ 확정 | Vercel (Next.js 공식 플랫폼) |
+| 채팅/게시판/응원을 영속화할 백엔드는? | 고도화 단계 착수 전 | 미정 — Supabase 우선 검토 (§18) |
+| 인증 제공자는? | 고도화 단계 착수 전 | 미정 — Supabase Auth / NextAuth 후보 (§18) |
+
+---
+
+## 18. 고도화 로드맵 (해제된 제약)
+
+> CLAUDE.md에서 해제된 4개 제약을 도입할 때의 기술 방향. 각 항목은 **작게·검증 가능하게**, 기존 기능을 깨지 않으며 단계적으로 도입한다. 도입 결정 시 §15 Decision Log에 기록한다.
+
+| 영역 | 현재 | 목표 | 권장 접근 |
+|---|---|---|---|
+| 인증 | localStorage 단일 사용자 | 소셜 로그인 + 사용자 계정 | Supabase Auth 또는 NextAuth. `UserProfile`을 인증 사용자에 연결, 비로그인은 게스트 유지 |
+| DB/영속화 | 인메모리 State | 채팅·게시판·응원·밈 서버 저장 | Supabase(Postgres). 기존 타입(`Post`/`Comment`/`ChatMessage`/`Meme`)을 테이블 스키마로 매핑, 커스텀 훅을 데이터 레이어 뒤로 |
+| 실시간 | setInterval 시뮬레이터 | 실시간 채팅·응원·게시판 갱신 | Supabase Realtime 또는 WebSocket. `useChatMessages`의 시뮬레이터를 구독으로 교체 |
+| 파일 업로드 | 밈 이미지 URL 입력 | 실제 이미지 파일 업로드 | Supabase Storage 또는 Vercel Blob. `Meme.imageUrl`은 업로드 결과 URL로 유지(스키마 변경 최소화) |
+
+### 도입 원칙
+
+- 단일 외부 서비스(예: Supabase)로 인증·DB·실시간·스토리지를 함께 해결해 "다중 외부 API 연동" 경계를 지킨다. (OpenF1은 데이터 소스로 별개 유지)
+- 비로그인 게스트 흐름을 유지해 온보딩 1분 목표를 깨지 않는다.
+- 영속화 전환 시 기존 인메모리 훅의 인터페이스를 보존하고 내부 구현만 교체한다(리팩토링 충격 최소화).
+- 결제·추가 외부 API는 여전히 범위 밖.

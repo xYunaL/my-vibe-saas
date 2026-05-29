@@ -73,12 +73,14 @@ F1 팬덤이 분산된 문제를 공감시키고, 패독 코리아의 핵심 가
 ### Required Areas
 
 - Onboarding Modal (첫 진입 시)
-- App Header (상단 고정 내비게이션)
-- Tab Navigation (섹션 전환)
-- Chat Area (전체 채팅 / 팀 채팅 공통 구조)
+- App Header (상단 고정 내비게이션 + 테마 토글 + 프로필 위젯)
+- Tab Navigation (6개 탭 전환)
+- Home Dashboard (그랑프리 현황 + 응원/랭킹 + 전체 실시간 채팅)
+- Board Area (전체/팀별 게시판 + 글쓰기/댓글/좋아요/정렬)
 - Meme Feed Area (밈 피드 + 업로드)
 - F1 101 Area (가이드 카드)
-- Pit Wall Area (순위표 + 일정)
+- Pit Wall Area (순위표 + 일정 + 세션 결과)
+- My Page Area (프로필 편집 + 테마 + 내 글)
 - Empty State (콘텐츠 없음 안내)
 
 ### Area Detail
@@ -91,30 +93,45 @@ F1 팬덤이 분산된 문제를 공감시키고, 패독 코리아의 핵심 가
 - 닉네임 미입력 또는 팀/가상 옵션 미선택 시 완료 버튼 비활성화 (가상 옵션도 "선택"으로 인정)
 
 **App Header**
-- 상단 고정, `charcoal-800` 90% + backdrop-blur
-- 좌: 로고 (PADDOCK 태그 + KOREA 워드마크), 클릭 시 홈으로 이동
-- 중(데스크톱): 7개 탭 네비게이션 (`nav-tab-active` / `nav-tab-inactive`)
-- 우: 팀 로고 + 닉네임 프로필 위젯 (`profile-widget`), 클릭 시 프로필 편집 모달
-- 모바일: 햄버거 아이콘 → 2열 그리드 탭 드로어
+- 상단 고정, `charcoal-800` 95% + backdrop-blur
+- 좌: 로고 (PADDOCK.KOREA 워드마크)
+- 중(데스크톱): 6개 탭 네비게이션 (`nav-tab-active` / `nav-tab-inactive`)
+- 우: 테마 토글(`ThemeToggle`) + 팀 로고(들) + 닉네임 프로필 위젯 (`profile-widget`), 클릭 시 My Page로 이동
+- 모바일: 헤더 하단 가로 스크롤 탭 스트립
 
 **Tab Navigation**
-- 탭 목록: 홈 피드 / The Garage / The Main Straight / Pit Wall / F1 101
+- 탭 목록: Home / Board / Meme Box / F1 101 / Pit Wall / My Page (`TabId`)
 - 활성 탭: `nav-tab-active` (F1 Red 배경)
-- 비활성 탭: `nav-tab-inactive` (투명, gray-300 텍스트)
-- 아이콘 + 탭명 조합
+- 비활성 탭: `nav-tab-inactive` (투명, muted 텍스트)
+- 데스크톱: pill 형태 가로 네비 / 모바일: 하단 가로 스크롤 스트립
 
-**Chat Area** (The Main Straight / The Garage 공통)
-- 상단: 라이브 상태 바 (`live-indicator` 펄싱 레드 점 + 채팅방 이름)
-- 중앙: 메시지 스크롤 영역 (고정 높이, 최신 메시지 자동 스크롤)
-  - 내 메시지: `chat-bubble-own` (팀 컬러 틴트, 우측 정렬)
-  - 상대 메시지: `chat-bubble-other` (charcoal, 좌측 정렬 + 팀 로고 아바타)
-  - 메시지 상단: 닉네임 (`body-strong`) + 팀명 (팀 컬러, `caption`) + 시각 (`data-sm`)
-- 하단: 입력창 (`text-input`, flex-1) + 전송 버튼 (`button-primary`, "전송")
-- The Garage: 상단에 11개 팀 선택 탭 바(`TeamChatTabs`) 추가. 내 팀 탭에는 골드 점 표시
-  - 다른 팀 탭 선택 시 메시지는 **읽기 전용**으로 열람 가능, 입력창 잠금 + "🔒 읽기 전용 — {팀명} 팬만 발언할 수 있어요" 골드 배지 표시
-  - 작성 권한: 자기 팀이거나 "올팬"일 때만 입력창 활성화. "응원 팀 없음"은 모든 팀 읽기 전용
+**Home Dashboard** (`main-straight` 탭)
+- 상단: 그랑프리 현황 카드 — 다음/진행 중 그랑프리명, 국가, KST 기간, `D-{n}` 또는 `● LIVE` 배지 (OpenF1 `/api/pitwall` 일정 기반)
+- 좌측: 응원 패널(`CheerPanel`) + 응원 랭킹(`CheerRanking`)
+- 우측: 전체 실시간 채팅(`GlobalChatRoom`, 컴팩트). "⤢ 전체화면" 버튼으로 오버레이 확대 / "✕ 닫기"로 복귀
+- 채팅 영역 구조:
+  - 상단: 라이브 상태 바 (`live-indicator` 펄싱 레드 점 + 채팅방 이름)
+  - 중앙: 메시지 스크롤 영역 (최신 메시지 자동 스크롤)
+    - 내 메시지: `chat-bubble-own` (팀 컬러 틴트, 우측 정렬)
+    - 상대 메시지: `chat-bubble-other` (charcoal, 좌측 정렬 + 팀 로고 아바타)
+    - 메시지 상단: 닉네임 (`body-strong`) + 팀명 (팀 컬러, `caption`) + 시각 (`data-sm`)
+  - 하단: 입력창 (`text-input`, flex-1) + 전송 버튼 (`button-primary`, "전송"), Enter 전송
 
-**Meme Feed Area** (The Main Straight 내 서브탭)
+**Board Area** (`board` 탭)
+- 상단: 제목 + "+ 글쓰기" 버튼 (`button-secondary`, 작성 권한 없으면 비활성)
+- 스코프 토글: 전체 / 팀별 (`aria-pressed`)
+- 팀별 스코프: 11개 팀 선택 탭 바(`BoardTeamTabs`). 내 팀 탭 강조
+  - 작성 권한 없는 팀(타팀 팬, "응원 팀 없음") 선택 시 "🔒 읽기 전용 — {팀명} 팬만 글을 쓸 수 있어요" 골드 배지, 글쓰기·댓글 잠금
+  - 권한: `canPostInTeamChat` — 자기 팀(들) 또는 "올팬"일 때만 작성 가능
+- 정렬: 최신순 / 인기순 (`aria-pressed`)
+- 피드: 글 카드 목록(`PostCard`) — 제목·본문·작성자·팀·좋아요·댓글
+- 글쓰기 모달(`PostComposer`): 제목·본문 입력, 둘 다 채워야 게시 가능
+
+**Cheer (Home 내)**
+- 응원 패널(`CheerPanel`): 내 응원 대상 팀 + 응원 버튼(+1). 오늘 응원 완료 시 비활성. KST 하루 1회
+- 응원 랭킹(`CheerRanking`): 팀별 누적 응원(시드 baseline + 사용자 누적) 정렬 목록, 내 팀 강조
+
+**Meme Feed Area** (`meme` 탭)
 - 상단: 카테고리 필터 칩 바 (`filter-chip-active` / `filter-chip-inactive`) + "밈 올리기" 버튼 (`button-secondary`)
 - 피드: 2열 카드 그리드 (`meme-card` 스타일)
   - 카테고리 배지: `badge-mono` (F1 Red 텍스트)
@@ -131,9 +148,16 @@ F1 팬덤이 분산된 문제를 공감시키고, 패독 코리아의 핵심 가
 
 **Pit Wall Area**
 - 상단: 드라이버 순위 / 컨스트럭터 순위 서브탭 전환
-- 드라이버 순위: 테이블 (순위 칩 + 번호/코드 + 이름 + 팀 컬러 점 + 포인트 바)
+- 드라이버 순위: 테이블 (순위 칩 + 번호/코드 + 드라이버 헤드샷 + 이름 + 팀 컬러 점 + 포인트 바)
 - 컨스트럭터 순위: 2열 카드 그리드 (팀 컬러 상단 라인 + 포인트 바)
-- 우측(데스크톱) / 하단(모바일): KST 경기 일정 스크롤 목록 (완료 = 60% opacity / 예정 = 풀 opacity + 알림 벨 버튼)
+- 우측(데스크톱) / 하단(모바일): KST 경기 일정 스크롤 목록 (완료 = 60% opacity / 예정 = 풀 opacity)
+- 완료 세션 선택 시: 세션별 결과 테이블 (순위·드라이버·헤드샷·포인트, DNF/DNS/DSQ 표시). OpenF1 `/api/pitwall/session/[sessionKey]` 경유
+- 데이터 출처 배지: `source: openf1 | fallback`
+
+**My Page Area** (`mypage` 탭)
+- 프로필 카드: 닉네임 입력(1–15자, 카운터) + 응원 팀 선택 그리드(`TeamPickerGrid`, 최대 2개) + "변경 저장" 버튼(변경 시에만 활성, 미변경 시 "저장됨")
+- 테마 카드: 라이트/다크 토글(`ThemeToggle`)
+- 내 게시글 카드: 내가 작성한 글 목록(최신순, 제목·요약·좋아요·댓글 수·날짜·스코프 배지). 없으면 EmptyState
 
 **Empty State**
 - 채팅 메시지 없음: "아직 대화가 없습니다. 첫 메시지를 보내보세요!"
@@ -142,40 +166,54 @@ F1 팬덤이 분산된 문제를 공감시키고, 패독 코리아의 핵심 가
 
 ## 5. Component Plan
 
-| Component | Purpose | Requirement Link |
-|---|---|---|
-| `OnboardingModal` | 닉네임 입력 + 팀 선택 온보딩 | FR-001 |
-| `AppHeader` | 상단 고정 내비게이션, 프로필 위젯, 모바일 햄버거 | FR-001, FR-002, FR-003 |
-| `TabNav` | 섹션 전환 탭 (데스크톱 수평 / 모바일 드로어) | FR-002, FR-003 |
-| `ChatRoom` | 채팅 메시지 목록 + 입력 폼 (전체 / 팀 공통) | FR-002, FR-003, FR-005 |
-| `ChatBubble` | 개별 메시지 버블 (내 것 / 상대방 구분) | FR-002, FR-003, FR-004 |
-| `TeamSelectorGrid` | 팀 선택 카드 그리드 (11개 팀 + 가상 옵션 2개, 온보딩 및 설정 변경) | FR-001 |
-| `TeamChatTabs` | The Garage 팀 선택 탭 바 (11개 팀, 내 팀 표시, 타팀 열람) | FR-003 |
-| `MemeCard` | 밈 피드 개별 카드 (제목·본문·투표) | FR-007, FR-008 |
-| `MemeUploadModal` | 밈 제목·카테고리·본문 입력 후 게시 | FR-006 |
-| `MemeFilterBar` | 밈 카테고리 필터 칩 바 | FR-012 |
-| `F1GuideCard` | F1 101 카드 (용어·경기 방식·위켄드) | FR-009 |
-| `StandingsTable` | 드라이버 챔피언십 순위 테이블 | FR-011 |
-| `ConstructorGrid` | 컨스트럭터 챔피언십 카드 그리드 | FR-011 |
-| `RaceScheduleList` | KST 기준 경기 일정 목록 + 알림 벨 | FR-010 |
-| `LiveIndicator` | 펄싱 레드 점 + 라이브 텍스트 상태 표시 | FR-005 |
-| `EmptyState` | 채팅·밈 콘텐츠 없음 안내 | FR-002, FR-007 |
-| `ProfileEditModal` | 닉네임·팀 변경 모달 | FR-013 |
+> 실제 구현 컴포넌트(src/) 기준. 일부 초기 계획 컴포넌트는 통합/대체되었다.
+
+| Component | Path | Purpose | Requirement Link |
+|---|---|---|---|
+| `OnboardingModal` | components/onboarding | 닉네임 입력 + 팀 선택 온보딩 | FR-001 |
+| `TeamPickerGrid` | components/onboarding | 팀 선택 그리드 (11개 팀 + 가상 옵션 2개, 최대 2팀). 온보딩·My Page 공용 | FR-001, FR-013 |
+| `AppHeader` | components/layout | 상단 고정 내비게이션(6탭) + 테마 토글 + 프로필 위젯 | FR-001~003, FR-015 |
+| `ThemeToggle` | components/layout | 라이트/다크 테마 전환 | FR-015 |
+| `HomeView` | features/home | 그랑프리 현황 + 응원/랭킹 + 전체 채팅 대시보드 | FR-002, FR-010, FR-014 |
+| `GlobalChatRoom` | features/chat | 전체 채팅 목록 + 입력 폼 (컴팩트/전체화면) | FR-002, FR-004, FR-005 |
+| `ChatBubble` | features/chat | 개별 메시지 버블 (내 것 / 상대방 구분) | FR-002, FR-004 |
+| `LiveIndicator` | features/chat | 펄싱 레드 점 + 라이브 텍스트 상태 표시 | FR-005 |
+| `BoardView` | features/board | 전체/팀 게시판 + 스코프·정렬·권한 | FR-003, FR-012 |
+| `BoardTeamTabs` | features/board | 팀 선택 탭 바 (11개 팀, 내 팀 표시, 타팀 열람) | FR-003 |
+| `PostCard` | features/board | 개별 게시글 카드 (제목·본문·좋아요·댓글) | FR-003, FR-004 |
+| `PostComposer` | features/board | 글 제목·본문 입력 후 게시 모달 | FR-003 |
+| `CheerPanel` | features/cheer | 내 팀 응원 버튼 (하루 1회 +1) | FR-014 |
+| `CheerRanking` | features/cheer | 팀별 누적 응원 랭킹 | FR-014 |
+| `MemeFeed` | features/memes | 밈 그리드 + 필터 + 업로드 진입 | FR-007, FR-012 |
+| `MemeCard` | features/memes | 밈 피드 개별 카드 (이미지·캡션·좋아요) | FR-007, FR-008 |
+| `MemeUploadModal` | features/memes | 밈 이미지 URL·캡션 입력 후 게시 | FR-006 |
+| `F1101Guide` | features/f1guide | F1 101 카테고리 탭 + 카드 그리드 | FR-009 |
+| `F1GuideCard` | features/f1guide | F1 101 카드 (인라인 확장) | FR-009 |
+| `PitWallPage` | features/pitwall | 순위 + 일정 + 세션 결과 레이아웃 | FR-010, FR-011 |
+| `MyPageView` | features/mypage | 프로필 편집 + 테마 + 내 글 | FR-013, FR-015, FR-016 |
+| `EmptyState` | components/ui | 콘텐츠 없음 안내 | FR-002, FR-003, FR-007 |
+| `Button` | components/ui | Primary / Secondary / Ghost 버튼 | 공용 |
+
+> 명칭 변경: `TeamSelectorGrid`→`TeamPickerGrid`, `ChatRoom`→`GlobalChatRoom`, `TeamChatTabs`→`BoardTeamTabs`(채팅→게시판), `ProfileEditModal`→`MyPageView`(모달→탭). `MemeFilterBar`·`StandingsTable`·`ConstructorGrid`·`RaceScheduleList`는 상위 컴포넌트에 통합.
 
 ## 6. Interaction Rules
 
 - 닉네임 미입력 시 온보딩 완료 버튼이 비활성화된다.
 - 채팅 메시지 전송 후 입력창이 초기화되고 스크롤이 최신 메시지로 자동 이동한다.
 - 채팅 입력창이 비어 있으면 전송 버튼이 비활성화된다.
-- The Garage 탭에서는 기본 팀(실제 팀 사용자=자기 팀, 올팬/응원 팀 없음=첫 번째 팀) 채팅방이 열리며, 다른 팀 탭으로 전환할 수 있다.
-- 작성 권한이 없는 팀 채팅방(타팀 팬, "응원 팀 없음")은 읽기 전용으로 열람되며 입력창이 잠기고 "읽기 전용" 배지가 표시된다. "올팬"은 모든 팀 채팅방에 작성할 수 있다.
+- Home 채팅 "전체화면" 버튼으로 오버레이 확대, "닫기"로 복귀한다.
+- Board 팀별 스코프에서는 기본 팀(실제 팀 사용자=자기 팀, 올팬/응원 팀 없음=첫 번째 팀) 게시판이 열리며, 다른 팀 탭으로 전환할 수 있다.
+- 작성 권한이 없는 팀 게시판(타팀 팬, "응원 팀 없음")은 읽기 전용으로 열람되며 글쓰기·댓글이 잠기고 "읽기 전용" 배지가 표시된다. "올팬"은 모든 팀 게시판에 작성할 수 있다.
+- 게시글 제목 또는 본문 미입력 시 게시 버튼이 비활성화된다. 게시 후 최신순으로 정렬되고 피드 최상단에 표시된다.
+- 게시판 정렬을 최신순/인기순으로 토글하면 목록이 즉시 재정렬된다.
+- 응원 버튼은 KST 기준 하루 1회만 누를 수 있고, 누른 뒤에는 비활성화되며 랭킹이 즉시 갱신된다.
 - 밈 업로드 후 모달이 닫히고 피드 최상단에 새 밈이 즉시 표시된다.
-- 밈 제목 또는 본문 미입력 시 게시 버튼이 비활성화된다.
-- 밈 카테고리 필터를 변경하면 피드 목록이 즉시 바뀐다.
+- 밈 이미지 URL 미입력/형식 오류 시 게시 버튼이 비활성화된다.
 - F1 101 카드를 클릭하면 같은 카드 내에서 상세 내용이 인라인 펼쳐진다. 다시 클릭하면 접힌다.
-- 경기 일정 알림 벨을 누르면 "알림 설정 완료" 안내 메시지가 5초간 표시된 후 사라진다.
-- 채팅 탭 이외의 탭으로 이동하면 채팅 자동 갱신이 일시 정지된다.
-- 프로필 위젯 클릭 시 프로필 편집 모달이 열리며, 닉네임 저장 후 헤더에 즉시 반영된다.
+- Pit Wall에서 완료 세션을 선택하면 해당 세션 결과 테이블이 표시된다.
+- Home 탭이 아닐 때는 채팅 자동 갱신 시뮬레이터가 일시 정지된다.
+- 헤더 프로필 위젯 클릭 시 My Page로 이동하며, 닉네임·팀 저장 후 헤더에 즉시 반영된다.
+- 테마 토글 시 화면이 즉시 전환되고 설정이 유지된다.
 
 ## 7. Accessibility Rules
 

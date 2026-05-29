@@ -612,5 +612,5 @@ All interactive elements meet 44×44px minimum. Primary and secondary buttons si
 - **Team colors not exhaustively tested for contrast** — `baseColor` values from `data.ts` are used directly on dark backgrounds without systematic WCAG contrast checking. Low-luminance team colors (e.g., dark blue) may not meet AA on charcoal-800.
 - **F1 101 component not documented here** — the F1101 component uses the same card and inner-panel vocabulary but introduces a card-news/flashcard pattern not covered in the component spec above.
 - **BoostMode and PaddockStore** — these components exist in the prototype but are excluded from the MVP scope. Their component patterns (tap-to-boost interaction, store item card) are not documented.
-- **Dark mode only** — the system is dark-mode exclusive. No light mode token variants exist.
+- **Light/dark theme (구현됨)** — 앱은 이제 라이트/다크 테마 토글(`ThemeToggle`, 헤더·My Page)을 지원하며, 색상은 `globals.css`의 CSS 변수 토큰(`var(--color-*)`, `var(--text-*)`, `var(--border)`)으로 구현된다. 위 YAML 토큰은 다크 테마 기준값이며, 라이트 테마 값은 `globals.css`에서 재정의된다. 신규 UI는 하드코딩 hex 대신 CSS 변수 토큰을 사용해야 두 테마에서 모두 동작한다.
 - **Mobile screenshots not captured** — responsive behavior is derived from Tailwind breakpoint classes in the source, not from visual QA at each breakpoint.

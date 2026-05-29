@@ -148,6 +148,36 @@
 
 ---
 
+## 10b. Session 5+ — 고도화 단계
+
+4회차 종료 이후, 초기 MVP에서 제외했던 제약 중 4개를 해제하고 발전된 기능 개발과 리팩토링을 진행한다. (CLAUDE.md Boundaries 참조)
+
+### 우선순위
+
+1. **문서-코드 정합화** — docs를 현재 코드 실상(Home/Board/Cheer/My Page/2팀/테마/세션 결과)에 맞춰 갱신 (← 이번 작업)
+2. **기존 기능 고도화** — Board/Cheer/Home/My Page 등 이미 추가된 기능을 다듬고 안정화
+3. **해제된 제약 도입** — 아래 4개 영역을 작게·검증 가능하게 단계적으로 도입
+
+### 해제된 제약 (도입 가능)
+
+| 영역 | 현재 | 목표 | 기술 방향 |
+|---|---|---|---|
+| 인증/로그인 | localStorage 단일 사용자 | 소셜 로그인·다중 사용자 | Supabase Auth / NextAuth (docs/04 §18) |
+| 실시간 | setInterval 시뮬레이터 | 실시간 채팅·응원·게시판 | Supabase Realtime / WebSocket |
+| 백엔드/DB | 인메모리 State | 채팅·게시판·응원·밈 영속화 | Supabase(Postgres) |
+| 파일 업로드 | 밈 이미지 URL | 실제 이미지 파일 업로드 | Supabase Storage / Vercel Blob |
+
+> 여전히 제외: 결제, 추가 외부 API(OpenF1 외).
+
+### 도입 원칙
+
+- 한 번에 하나의 영역만 도입하고, 각 단계 후 빌드·수동 QA로 검증한다.
+- 기존 커스텀 훅(`useChatMessages`/`useBoard`/`useMemes`/`useCheer`)의 인터페이스를 유지하고 내부 구현만 교체한다.
+- 비로그인 게스트 흐름을 유지해 온보딩 1분 목표를 깨지 않는다.
+- 단일 백엔드 서비스(예: Supabase)로 인증·DB·실시간·스토리지를 함께 해결해 "다중 외부 API" 경계를 지킨다.
+
+---
+
 ## 11. Manual QA for Session 2
 
 2회차 종료 전 확인할 항목:
